@@ -2,33 +2,34 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main  # Chỉ chạy khi push lên nhánh main
+    branches: [ "main" ] # Hoặc branch bạn muốn chạy action
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout repository
-        uses: actions/checkout@v6.0.2
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # 2. Log in to Docker Hub using single secret
-      - name: Log in to Docker Hub
-        run: |
-          # Tách username và password từ secret GITHUBACTIONSECRET
-          USERNAME=$(echo "${{ secrets.GITHUBACTIONSECRET }}" | cut -d':' -f1)
-          PASSWORD=$(echo "${{ secrets.GITHUBACTIONSECRET }}" | cut -d':' -f2)
-          
-          echo "$PASSWORD" | docker login --username "$USERNAME" --password-stdin
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # 3. Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t letoanban/social-app:latest .
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          # Thay 'your-docker-username' bằng username thật của bạn trên Docker Hub
+          username: letoanban 
+          # GITHUBACTIONSECRET hiện tại đang chứa Personal Access Token của bạn
+          password: ${{ secrets.GITHUBACTIONSECRET }}
 
-      # 4. Push Docker image
-      - name: Push Docker image
-        run: |
-          docker push letoanban/social-app:latest
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Thay 'your-docker-username/repository-name' cho đúng project của bạn
+          tags: your-docker-username/repository-name:latest
+          # Sử dụng cache để build nhanh hơn ở các lần sau
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
